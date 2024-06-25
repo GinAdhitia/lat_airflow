@@ -7,10 +7,9 @@ from azure.storage.blob import BlobServiceClient
 import pandas as pd
 from io import StringIO
 
-
 def read_blob_to_dataframe(**kwargs):
     account_name = 'bvartadata'
-    account_key = '303rYYBPxOK50+vgM3bW8cWaEkVg2fy549ISJbnvtI6l5lVT1W2uNhGMuzP9HEmY9B4Tzl8Bqj+6+AStfczt4A=='
+    # account_key = '303rYYBPxOK50+vgM3bW8cWaEkVg2fy549ISJbnvtI6l5lVT1W2uNhGMuzP9HEmY9B4Tzl8Bqj+6+AStfczt4A=='
     container_name = 'bvarta-internal-data'
     blob_name = 'temp/sample.csv'
     
