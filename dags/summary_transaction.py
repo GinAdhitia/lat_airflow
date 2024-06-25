@@ -11,7 +11,7 @@ def extract_data(ti):
     try:
         postgres_hook = PostgresHook(postgres_conn_id='dbmaster')
 
-        sql = "SELECT * FROM transaction_data LIMIT 20"
+        sql = "SELECT * FROM transaction_data LIMIT 2000"
         connection = postgres_hook.get_conn()
         cursor = connection.cursor()
         cursor.execute(sql)
@@ -118,4 +118,4 @@ load_task = PythonOperator(
 
 )
 
-extract_task >> transform_task >> load_task
+extract_task >> transform_task >> load_task.as_teardown(setups=extract_task)

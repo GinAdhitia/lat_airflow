@@ -1,5 +1,5 @@
 docker-compose up -d
 
-chack ip
+check ip
 ipconfig getifaddr en0
 
