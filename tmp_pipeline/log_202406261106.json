@@ -1,0 +1,33 @@
+{
+    "title": "Test webhooks",
+    "description": "description webhooks",
+    "trigger": "incoming data",
+    "event": "incoming data",
+    "timestamp": 1719373892741,
+    "data": [
+        {
+            "node": "IPB Switch 1",
+            "parameter": "Relay",
+            "order": 0,
+            "value": -19.656224800929586
+        },
+        {
+            "node": "IPB Switch 2",
+            "parameter": "Relay",
+            "order": 1,
+            "value": -14.524187060090917
+        },
+        {
+            "node": "IPB Switch 3",
+            "parameter": "Relay",
+            "order": 2,
+            "value": -0.7533714576211565
+        },
+        {
+            "node": "IPB Switch 4",
+            "parameter": "Relay",
+            "order": 3,
+            "value": -6.677349951234206
+        }
+    ]
+}
