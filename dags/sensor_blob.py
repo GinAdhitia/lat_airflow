@@ -4,17 +4,19 @@ import pandas as pd
 import time
 from airflow import DAG
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.dummy import DummyOperator
 from datetime import datetime, timedelta
 from io import BytesIO
 
 
-AZURE_CONNECTION_ID = 'azure_blob_bvartadata'
-SOURCE_CONTAINER_NAME = 'bvarta-internal-data'
-SOURCE_DIRECTORY_PATH = 'temp/ingest/'
-TARGET_CONTAINER_NAME = 'bvarta-internal-data'
-TARGET_DIRECTORY_PATH = 'temp/stg/'
+AZURE_CONNECTION_ID    = 'azure_blob_bvartadata'
+POSTGRES_CONNECTION_ID = 'dbwarehouse'
+SOURCE_CONTAINER_NAME  = 'bvarta-internal-data'
+SOURCE_DIRECTORY_PATH  = 'temp/ingest/'
+TARGET_CONTAINER_NAME  = 'bvarta-internal-data'
+TARGET_DIRECTORY_PATH  = 'temp/stg/'
 
 
 def transform(blob_client):
@@ -38,8 +40,11 @@ def transform(blob_client):
 
 
 def load(df):
-    # Placeholder function to load data into PostgreSQL or other destination
-    pass
+    pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONNECTION_ID)
+    engine = pg_hook.get_sqlalchemy_engine()
+
+    df.to_sql('logs', engine, if_exists='replace', index=False)
+    return None
 
 
 def check_azure_blob_for_files(**kwargs):
@@ -87,7 +92,7 @@ def process_files(**kwargs):
         load(df)
         logging.info('Finished Load')
         
-        # hook.delete_file(container_name=SOURCE_CONTAINER_NAME, blob_name=source_blob_name)
+        hook.delete_file(container_name=SOURCE_CONTAINER_NAME, blob_name=source_blob_name)
         logging.info('Finished Delete')
     
     return 'finish'
