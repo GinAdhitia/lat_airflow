@@ -5,10 +5,22 @@ import time
 from airflow import DAG
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.operators.dummy import DummyOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 from datetime import datetime, timedelta
 from io import BytesIO
+
+default_args = {
+    'owner': 'airflow',
+    'retries': 1,
+    'start_date': datetime.now(),
+}
+
+dag = DAG(
+    'azure_blob_check',
+    default_args=default_args,
+    schedule_interval='* * * * *'
+)
 
 
 AZURE_CONNECTION_ID    = 'azure_blob_bvartadata'
@@ -19,6 +31,7 @@ TARGET_CONTAINER_NAME  = 'bvarta-internal-data'
 TARGET_DIRECTORY_PATH  = 'temp/stg/'
 
 
+# ETL
 def transform(blob_client):
     blob_data = BytesIO()
     blob_client.download_blob().readinto(blob_data)
@@ -43,10 +56,11 @@ def load(df):
     pg_hook = PostgresHook(postgres_conn_id=POSTGRES_CONNECTION_ID)
     engine = pg_hook.get_sqlalchemy_engine()
 
-    df.to_sql('logs', engine, if_exists='replace', index=False)
+    df.to_sql('logs', engine, if_exists='append', index=False)
     return None
 
 
+# Util
 def check_azure_blob_for_files(**kwargs):
     hook = WasbHook(wasb_conn_id=AZURE_CONNECTION_ID)
     files = hook.get_blobs_list(container_name=SOURCE_CONTAINER_NAME, prefix=SOURCE_DIRECTORY_PATH)
@@ -98,34 +112,30 @@ def process_files(**kwargs):
     return 'finish'
 
 
-default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime.now(),
-    'retry_delay': timedelta(minutes=1),
-}
+# Define Task
+start_task = DummyOperator(
+    task_id='start',
+    dag=dag,
+)
+    
+check_files_task = BranchPythonOperator(
+    task_id='check_azure_blob_files',
+    python_callable=check_azure_blob_for_files,
+    provide_context=True,
+    dag=dag,
+)
 
+move_and_process_files_task = PythonOperator(
+    task_id='process_files',
+    python_callable=process_files,
+    provide_context=True,
+    dag=dag,
+)
 
-with DAG('azure_blob_check', default_args=default_args, schedule_interval='0 0 1 * *', catchup=False) as dag:
-    start_task = DummyOperator(
-        task_id='start'
-    )
-        
-    check_files_task = BranchPythonOperator(
-        task_id='check_azure_blob_files',
-        python_callable=check_azure_blob_for_files,
-        provide_context=True,
-    )
+finish_task = DummyOperator(
+    task_id='finish',
+    dag=dag,
+)
 
-    move_and_process_files_task = PythonOperator(
-        task_id='process_files',
-        python_callable=process_files,
-        provide_context=True,
-    )
-
-    finish_task = DummyOperator(
-        task_id='finish'
-    )
-
-    start_task >> check_files_task >> [move_and_process_files_task, finish_task]
-    move_and_process_files_task >> finish_task
+start_task >> check_files_task >> [move_and_process_files_task, finish_task]
+move_and_process_files_task >> finish_task

@@ -6,11 +6,8 @@ import pandas as pd
 
 
 def extract_data_from_postgres():
-
-    # Initialize the postgres hook
     postgres_hook = PostgresHook(postgres_conn_id='airflow_db_conn')
 
-    # Execute your SQL
     sql = "SELECT * FROM ab_permission"
     connection = postgres_hook.get_conn()
     cursor = connection.cursor()
@@ -18,11 +15,7 @@ def extract_data_from_postgres():
 
     results = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
-
-    # Create a pandas dataframe
     df = pd.DataFrame(results, columns=column_names)
-
-    # output
     print(df)
 
 
